@@ -152,42 +152,11 @@ The URI format for Hashicorp Vault KMS is:
 This provider requires that the standard Vault environment variables (VAULT_ADDR, VAULT_TOKEN) are set correctly.
 This provider also requires that the `transit` secret engine is enabled
 
-### Kubernetes Secret
+If you enabled `transit` secret engine at different path with the use of `-path` flag (i.e., `$ vault secrets enable -path="someotherpath" transit`), you can use `TRANSIT_SECRET_ENGINE_PATH` environment variable to specify this path while generating a key pair like the following:
 
-Cosign can use keys stored in Kubernetes Secrets to so sign and verify signatures. In
-order to generate a secret you have to pass `cosign generate-key-pair` a
-`k8s://[NAMESPACE]/[NAME]` URI specifying the namespace and secret name:
-
+```shell
+$ TRANSIT_SECRET_ENGINE_PATH="someotherpath" cosign generate-key-pair --kms hashivault://testkey
 ```
-cosign generate-key-pair k8s://default/testsecret
-Enter password for private key: ****
-Enter again: ****
-Successfully created secret testsecret in namespace default
-Public key written to cosign.pub
-```
-
-After generating the key pair, cosign will store it in a Kubernetes secret using
-your current context. The secret will contain the private and public keys, as 
-well as the password to decrypt the private key.
-
-The secret has the following structure:
-
-```
-apiVersion: v1
-kind: Secret
-metadata:
-  name: testsecret
-  namespace: default
-type: Opaque
-data:
-  cosign.key: LS0tLS1CRUdJTiBFTkNSWVBURUQgQ09TSUdOIFBSSVZBVEUgS0VZLS0tLS[...]==
-  cosign.password: YWJjMTIz
-  cosign.pub: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQo[...]==
-```
-
-When verifying an image signature using `cosign verify`, the key will be automatically
-decrypted using the password stored in the kubernetes secret under the `cosign.password`
-field.
 
 #### Local Setup
 
@@ -206,3 +175,46 @@ If you enabled `transit` secret engine at different path with the use of `-path`
 ```shell
 $ TRANSIT_SECRET_ENGINE_PATH="someotherpath" cosign generate-key-pair --kms hashivault://testkey
 ```
+
+If you are using Vault Enterprise Namespaces, you can use the `VAULT_NAMESPACE` [environment variable](https://www.vaultproject.io/docs/commands#vault_namespace) to specify the Vault namespace that the `transit` secret engine is enabled in.
+
+```shell
+$ export VAULT_NAMESPACE="mynamespace"
+$ cosign generate-key-pair --kms hashivault://testkey
+Public key written to cosign.pub
+```
+
+### Kubernetes Secret
+
+Cosign can use keys stored in Kubernetes Secrets to so sign and verify signatures. In
+order to generate a secret you have to pass `cosign generate-key-pair` a
+`k8s://[NAMESPACE]/[NAME]` URI specifying the namespace and secret name:
+
+```
+cosign generate-key-pair k8s://default/testsecret
+Enter password for private key: ****
+Enter again: ****
+Successfully created secret testsecret in namespace default
+Public key written to cosign.pub
+```
+
+After generating the key pair, cosign will store it in a Kubernetes secret using
+your current context. The secret will contain the private and public keys, as
+well as the password to decrypt the private key.
+
+The secret has the following structure:
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: testsecret
+  namespace: default
+type: Opaque
+data:
+  cosign.key: LS0tLS1CRUdJTiBFTkNSWVBURUQgQ09TSUdOIFBSSVZBVEUgS0VZLS0tLS[...]==
+  cosign.password: YWJjMTIz
+  cosign.pub: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQo[...]==
+```
+
+When verifying an image signature using `cosign verify`, the key will be automatically decrypted using the password stored in the kubernetes secret under the `cosign.password` field.
