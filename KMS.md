@@ -138,9 +138,9 @@ The following environment variables must be set to let cosign authenticate to Az
 - AZURE_CLIENT_ID
 - AZURE_CLIENT_SECRET
 
-To create a key using `cosign generate-key-pair --kms azurekms://[VAULT_NAME][VAULT_URI]/[KEY]` you will need a user which has permissions to create keys in Key Vault. For example `Key Vault Crypto Officer` role.
+To create a key using `cosign generate-key-pair -kms azurekms://[VAULT_NAME][VAULT_URI]/[KEY]` you will need a user which has permissions to create keys in Key Vault. For example `Key Vault Crypto Officer` role.
 
-To sign images using `cosign sign --key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] [IMAGE]` you will need a user which has permissions to the sign action such as the `Key Vault Crypto User` role.
+To sign images using `cosign sign -key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] [IMAGE]` you will need a user which has permissions to the sign action such as the `Key Vault Crypto User` role.
 
 ### Hashicorp Vault
 
@@ -151,6 +151,38 @@ The URI format for Hashicorp Vault KMS is:
 
 This provider requires that the standard Vault environment variables (VAULT_ADDR, VAULT_TOKEN) are set correctly.
 This provider also requires that the `transit` secret engine is enabled
+
+If you enabled `transit` secret engine at different path with the use of `-path` flag (i.e., `$ vault secrets enable -path="someotherpath" transit`), you can use `TRANSIT_SECRET_ENGINE_PATH` environment variable to specify this path while generating a key pair like the following:
+
+```shell
+$ TRANSIT_SECRET_ENGINE_PATH="someotherpath" cosign generate-key-pair --kms hashivault://testkey
+```
+
+#### Local Setup
+
+For a local setup, you can run Vault yourself or use the `docker-compose` file from [sigstore/sigstore](https://github.com/sigstore/sigstore/blob/main/test/e2e/docker-compose.yml) as an example.
+
+After running it:
+
+```shell
+$ export VAULT_ADDR=http://localhost:8200
+$ export VAULT_TOKEN=testtoken
+$ vault secrets enable transit
+```
+
+If you enabled `transit` secret engine at different path with the use of `-path` flag (i.e., `$ vault secrets enable -path="someotherpath" transit`), you can use `TRANSIT_SECRET_ENGINE_PATH` environment variable to specify this path while generating a key pair like the following:
+
+```shell
+$ TRANSIT_SECRET_ENGINE_PATH="someotherpath" cosign generate-key-pair --kms hashivault://testkey
+```
+
+If you are using Vault Enterprise Namespaces, you can use the `VAULT_NAMESPACE` [environment variable](https://www.vaultproject.io/docs/commands#vault_namespace) to specify the Vault namespace that the `transit` secret engine is enabled in.
+
+```shell
+$ export VAULT_NAMESPACE="mynamespace"
+$ cosign generate-key-pair --kms hashivault://testkey
+Public key written to cosign.pub
+```
 
 ### Kubernetes Secret
 
@@ -167,7 +199,7 @@ Public key written to cosign.pub
 ```
 
 After generating the key pair, cosign will store it in a Kubernetes secret using
-your current context. The secret will contain the private and public keys, as 
+your current context. The secret will contain the private and public keys, as
 well as the password to decrypt the private key.
 
 The secret has the following structure:
@@ -188,21 +220,3 @@ data:
 When verifying an image signature using `cosign verify`, the key will be automatically
 decrypted using the password stored in the kubernetes secret under the `cosign.password`
 field.
-
-#### Local Setup
-
-For a local setup, you can run Vault yourself or use the `docker-compose` file from [sigstore/sigstore](https://github.com/sigstore/sigstore/blob/main/test/e2e/docker-compose.yml) as an example.
-
-After running it:
-
-```shell
-$ export VAULT_ADDR=http://localhost:8200
-$ export VAULT_TOKEN=testtoken
-$ vault secrets enable transit
-```
-
-If you enabled `transit` secret engine at different path with the use of `-path` flag (i.e., `$ vault secrets enable -path="someotherpath" transit`), you can use `TRANSIT_SECRET_ENGINE_PATH` environment variable to specify this path while generating a key pair like the following:
-
-```shell
-$ TRANSIT_SECRET_ENGINE_PATH="someotherpath" cosign generate-key-pair --kms hashivault://testkey
-```
